@@ -11,6 +11,9 @@ MESSAGE = """🔔 <b>자. 주간회의 진행 합시다.</b>
 
 📍 <b>장소</b> 우림오피스 14층 601호
 
+📝 <a href="https://mobiledev.makeshop.co.kr/s/mobiledev/p/-Of5JbmCy39">주간회의 회의록</a>
+📌 <a href="https://cowave-ms.atlassian.net/jira/software/c/projects/MS/boards/588">Jira - 모바일팀</a>
+
 ⏰ <code>늦지 않게 모여주세요.</code>"""
 
 
