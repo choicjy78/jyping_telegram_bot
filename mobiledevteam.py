@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 from pathlib import Path
 
 import requests
@@ -16,6 +17,9 @@ DEFAULT_OPENAI_MODEL = "gpt-5.2"
 WEATHER_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_LATITUDE = 37.5665
 WEATHER_LONGITUDE = 126.9780
+WEATHER_RETRY_STATUS_CODES = {502, 503, 504}
+WEATHER_RETRY_ATTEMPTS = 3
+WEATHER_RETRY_DELAY_SECONDS = 2
 WEEKEND_TITLE = "🎉 즐거운 주말 보내세요! 🎉"
 WEEKEND_FOOTER = "<b>Happy Weekend!</b>"
 WEEKEND_MESSAGE_STYLES = (
@@ -93,19 +97,31 @@ def weather_label(code):
 
 def get_weekend_weather_summary(now, timeout=10):
     saturday, sunday = weekend_dates(now)
-    response = requests.get(
-        WEATHER_FORECAST_URL,
-        params={
-            "latitude": WEATHER_LATITUDE,
-            "longitude": WEATHER_LONGITUDE,
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
-            "timezone": "Asia/Seoul",
-            "start_date": saturday.isoformat(),
-            "end_date": sunday.isoformat(),
-        },
-        timeout=timeout,
-    )
-    response.raise_for_status()
+    params = {
+        "latitude": WEATHER_LATITUDE,
+        "longitude": WEATHER_LONGITUDE,
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+        "timezone": "Asia/Seoul",
+        "start_date": saturday.isoformat(),
+        "end_date": sunday.isoformat(),
+    }
+
+    for attempt in range(1, WEATHER_RETRY_ATTEMPTS + 1):
+        try:
+            response = requests.get(WEATHER_FORECAST_URL, params=params, timeout=timeout)
+            response.raise_for_status()
+            break
+        except requests.HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            if status_code not in WEATHER_RETRY_STATUS_CODES or attempt == WEATHER_RETRY_ATTEMPTS:
+                raise
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == WEATHER_RETRY_ATTEMPTS:
+                raise
+
+        print(f"주말 날씨 조회 재시도 중입니다: {attempt}/{WEATHER_RETRY_ATTEMPTS}")
+        time.sleep(WEATHER_RETRY_DELAY_SECONDS)
+
     daily = response.json()["daily"]
 
     summaries = []
@@ -202,7 +218,7 @@ def generate_weekend_message(now, timeout=15):
                 {
                     "role": "user",
                     "content": (
-                        f"오늘 날짜는 {now.date().isoformat()}이고 금요일 저녁 6시 주말 인사 메시지를 보낼 시간이다.\n"
+                        f"오늘 날짜는 {now.date().isoformat()}이고 금요일 오후 5시 55분 주말 인사 메시지를 보낼 시간이다.\n"
                         f"이번 주말 서울 날씨: {weather_summary}\n"
                         f"이번 주 메시지 분위기: {weekend_style_for(now)}"
                     ),
@@ -221,7 +237,7 @@ def generate_weekend_message(now, timeout=15):
 def message_for_now(now):
     if now.weekday() == 3 and now.hour == 11:
         return METTING_MESSAGE
-    if now.weekday() == 4 and now.hour == 18:
+    elif now.weekday() == 4 and now.hour == 17:
         try:
             return generate_weekend_message(now)
         except requests.HTTPError as exc:
