@@ -22,6 +22,7 @@ WEATHER_RETRY_ATTEMPTS = 3
 WEATHER_RETRY_DELAY_SECONDS = 2
 WEEKEND_TITLE = "🎉 즐거운 주말 보내세요! 🎉"
 WEEKEND_FOOTER = "<b>Happy Weekend!</b>"
+FRIDAY_MORNING_TITLE = "☀️ 금요일 재택근무 시작합니다 ☀️"
 WEEKEND_MESSAGE_STYLES = (
     "차분하고 따뜻한 느낌",
     "밝고 에너지 있는 느낌",
@@ -176,6 +177,13 @@ def format_weekend_message(body):
     return f"{WEEKEND_TITLE}\n\n{body}\n\n\n{WEEKEND_FOOTER}"
 
 
+def format_friday_morning_message(body):
+    body = body.strip()
+    if not body:
+        return None
+    return f"*{FRIDAY_MORNING_TITLE}*\n\n{body}"
+
+
 def generate_weekend_message(now, timeout=15):
     api_key = openai_api_key()
     if not api_key:
@@ -234,9 +242,74 @@ def generate_weekend_message(now, timeout=15):
     return format_weekend_message(message)
 
 
+def generate_friday_morning_message(now, timeout=15):
+    api_key = openai_api_key()
+    if not api_key:
+        print(f"{OPENAI_API_KEY_ENV} 환경변수가 없어 금요일 아침 메시지를 보내지 않습니다.")
+        return None
+
+    response = requests.post(
+        "https://api.openai.com/v1/responses",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": openai_model(),
+            "input": [
+                {
+                    "role": "developer",
+                    "content": (
+                        "너는 (주) 커넥트웨이브 메이크샵 사업부 모바일팀의 텔레그램 봇 메시지 작성자다. "
+                        "금요일 오전 9시에 보낼 재택근무 시작 메시지의 본문만 작성한다. "
+                        "타이틀은 시스템이 따로 붙이므로 절대 출력하지 않는다. "
+                        "텔레그램 HTML parse_mode에서 안전한 텍스트만 작성한다. "
+                        "HTML 태그를 써야 한다면 <b>, <code>만 사용한다. "
+                        "월요일부터 목요일까지 여러 업무로 고생한 팀원들을 따뜻하게 치하한다. "
+                        "금요일 재택근무를 상쾌하게 시작하도록 격려한다. "
+                        "다만 재택근무 시간에 딴짓하거나 연락 두절되지 않도록 가볍지만 분명하게 주의를 준다. "
+                        "마지막에는 한국에서 요새 핫한 뉴스 3가지만 짧게 모아서 보여준다. "
+                        "개발자 정보, IT 기술 뉴스, 프로그래밍 이슈가 아니라 한국 대중 뉴스와 연예 소식 위주로 고른다. "
+                        "가능하면 연예 소식을 우선하고, 연예 소식이 부족할 때만 사회적 화제나 생활 이슈를 섞는다. "
+                        "핫한 뉴스는 <b>요새 핫한 뉴스 3가지</b> 제목 아래에 1, 2, 3번 목록으로 작성한다. "
+                        "전체는 7~10줄로 작성하고, 과장된 표현은 줄이고, 이모지는 적당히 사용한다. "
+                        "설명 없이 메시지 본문만 출력한다."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"오늘 날짜는 {now.date().isoformat()}이고 금요일 오전 9시 재택근무 시작 메시지를 보낼 시간이다.\n"
+                        "재택 근무 시간은 오전 9시다.\n"
+                        "월~목까지 여러 업무로 인해 고생한 부분을 치하하고 상콤하게 팀원을 격려해줘.\n"
+                        "대신 재택근무 시간에 딴짓하거나 잠수 타지 않도록 주의도 줘.\n"
+                        "마지막으로 한국에서 요새 핫한 뉴스 3가지만 모아서 보여줘. 개발자/IT 이슈 말고, 이왕이면 연예소식 위주로 보여줘."
+                    ),
+                },
+            ],
+            "max_output_tokens": 450,
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+
+    message = extract_openai_text(response.json())
+    return format_friday_morning_message(message)
+
+
 def message_for_now(now):
     if now.weekday() == 3 and now.hour == 11:
         return METTING_MESSAGE
+    elif now.weekday() == 4 and now.hour == 9:
+        try:
+            return generate_friday_morning_message(now)
+        except requests.HTTPError as exc:
+            error_message = exc.response.text if exc.response is not None else str(exc)
+            print(f"AI 금요일 아침 메시지 생성 실패, 금요일 아침 메시지를 보내지 않습니다: {exc} / {error_message}")
+            return None
+        except requests.RequestException as exc:
+            print(f"AI 금요일 아침 메시지 생성 실패, 금요일 아침 메시지를 보내지 않습니다: {exc}")
+            return None
     elif now.weekday() == 4 and now.hour == 17:
         try:
             return generate_weekend_message(now)
