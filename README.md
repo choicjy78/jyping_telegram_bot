@@ -25,16 +25,16 @@ OPENAI_MODEL=gpt-5.2
 
 ## 봇 실행 방법
 
-푸드스케치 메뉴 이미지와 투표를 보냅니다.
+푸드스케치 메뉴 이미지를 보냅니다. (투표 없음)
 
 ```bash
-/usr/bin/python3 thefoodsketch.py
+/usr/bin/python3 cafeteria/thefoodsketch.py
 ```
 
-푸드스케치 투표를 종료하고 결과에 따라 출발 메시지 또는 주변 맛집 링크를 보냅니다.
+아이밀 메뉴 이미지만 보냅니다. (투표 없음)
 
 ```bash
-/usr/bin/python3 thefoodsketch.py finish
+/usr/bin/python3 cafeteria/imeal.py
 ```
 
 서버 상태 메시지를 보냅니다.
