@@ -12,6 +12,9 @@ import requests
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
+CAFETERIA_DIR = PROJECT_DIR / "cafeteria"
+if str(CAFETERIA_DIR) not in sys.path:
+    sys.path.insert(0, str(CAFETERIA_DIR))
 
 import common
 import kakao_menu
@@ -36,6 +39,7 @@ def main():
         chat_id = "TEST_CHAT"
 
     with ExitStack() as patches:
+        patches.enter_context(patch.object(kakao_menu.time, "sleep"))
         if not args.send:
             patches.enter_context(patch.object(common, "send_telegram_text", side_effect=preview_message))
 
