@@ -1,6 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import time
 
 import requests
 
@@ -10,6 +11,7 @@ import common
 PROFILE_API_URL = "https://pf.kakao.com/rocket-web/web/v2/profiles/{channel_id}"
 BOT_TOKEN_ENV = "FSBOT"
 CHAT_ID_ENV = "FSBOT_CHATID"
+MAX_RETRIES = 3
 
 LOG_DIR = Path(__file__).resolve().parent.parent / "log"
 LOG_DIR.mkdir(exist_ok=True)
@@ -68,6 +70,31 @@ def _notify_error(bot_token, chat_id, channel_id, stage, exc, timeout):
         )
 
 
+def _is_retryable(exc, photo=False):
+    if isinstance(exc, requests.HTTPError):
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        return status_code == 429 or (status_code is not None and 500 <= status_code < 600)
+    if photo:
+        return isinstance(exc, requests.ConnectTimeout)
+    return isinstance(exc, (requests.Timeout, requests.ConnectionError))
+
+
+def _wait_for_retry(stage, channel_id, attempt, exc):
+    delay = 2 ** (attempt - 1)
+    status_code = getattr(getattr(exc, "response", None), "status_code", None)
+    logger.warning(
+        "%s 재시도 예정: channel_id=%s attempt=%s/%s error_type=%s status_code=%s delay=%ss",
+        stage,
+        channel_id,
+        attempt,
+        MAX_RETRIES + 1,
+        type(exc).__name__,
+        status_code,
+        delay,
+    )
+    time.sleep(delay)
+
+
 def _find_image_url(channel_id, timeout=10):
     """카카오 채널의 프로필 이미지(오늘의 메뉴) URL을 반환한다."""
     logger.info("카카오 프로필 메뉴 조회 시작: channel_id=%s", channel_id)
@@ -97,41 +124,59 @@ def _find_image_url(channel_id, timeout=10):
 
 def send_menu_photo(bot_token, chat_id, channel_id, caption, timeout=10):
     """카카오 채널의 메뉴 이미지를 텔레그램 채팅으로 전송한다."""
-    try:
-        image_url = _find_image_url(channel_id, timeout=timeout)
-    except Exception as exc:
-        _notify_error(bot_token, chat_id, channel_id, "프로필 메뉴 조회 실패", exc, timeout)
-        raise
+    for attempt in range(1, MAX_RETRIES + 2):
+        try:
+            image_url = _find_image_url(channel_id, timeout=timeout)
+            break
+        except Exception as exc:
+            if attempt <= MAX_RETRIES and _is_retryable(exc):
+                _wait_for_retry("카카오 프로필 메뉴 조회", channel_id, attempt, exc)
+                continue
+            _notify_error(bot_token, chat_id, channel_id, "프로필 메뉴 조회 실패", exc, timeout)
+            raise
 
-    logger.info("텔레그램 메뉴 사진 전송 시작: channel_id=%s", channel_id)
-    try:
-        response = requests.post(
-            common.telegram_api_url(bot_token, "sendPhoto"),
-            data={
-                "chat_id": chat_id,
-                "photo": image_url,
-                "caption": caption,
-            },
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        result = response.json().get("result")
-        if result is None:
-            raise RuntimeError("텔레그램 API 응답에 result가 없습니다.")
-        message_id = result.get("message_id") if isinstance(result, dict) else None
+    for attempt in range(1, MAX_RETRIES + 2):
         logger.info(
-            "텔레그램 메뉴 사진 전송 성공: channel_id=%s message_id=%s",
+            "텔레그램 메뉴 사진 전송 시작: channel_id=%s attempt=%s/%s",
             channel_id,
-            message_id,
+            attempt,
+            MAX_RETRIES + 1,
         )
-        return result
-    except Exception as exc:
-        status_code = getattr(getattr(exc, "response", None), "status_code", None)
-        logger.error(
-            "텔레그램 메뉴 사진 전송 실패: channel_id=%s error_type=%s status_code=%s",
-            channel_id,
-            type(exc).__name__,
-            status_code,
-        )
-        _notify_error(bot_token, chat_id, channel_id, "메뉴 사진 전송 실패", exc, timeout)
-        raise
+        try:
+            response = requests.post(
+                common.telegram_api_url(bot_token, "sendPhoto"),
+                data={
+                    "chat_id": chat_id,
+                    "photo": image_url,
+                    "caption": caption,
+                },
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            result = response.json().get("result")
+            if result is None:
+                raise RuntimeError("텔레그램 API 응답에 result가 없습니다.")
+            message_id = result.get("message_id") if isinstance(result, dict) else None
+            logger.info(
+                "텔레그램 메뉴 사진 전송 성공: channel_id=%s message_id=%s attempt=%s/%s",
+                channel_id,
+                message_id,
+                attempt,
+                MAX_RETRIES + 1,
+            )
+            return result
+        except Exception as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            logger.error(
+                "텔레그램 메뉴 사진 전송 실패: channel_id=%s error_type=%s status_code=%s attempt=%s/%s",
+                channel_id,
+                type(exc).__name__,
+                status_code,
+                attempt,
+                MAX_RETRIES + 1,
+            )
+            if attempt <= MAX_RETRIES and _is_retryable(exc, photo=True):
+                _wait_for_retry("텔레그램 메뉴 사진 전송", channel_id, attempt, exc)
+                continue
+            _notify_error(bot_token, chat_id, channel_id, "메뉴 사진 전송 실패", exc, timeout)
+            raise
