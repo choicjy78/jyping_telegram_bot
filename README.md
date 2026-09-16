@@ -40,6 +40,24 @@ OPENAI_MODEL=gpt-5.2
 카카오 프로필 메뉴 조회와 텔레그램 사진 전송 로그는 저장소 루트의 `log/kakao_menu.log`에 기록됩니다.
 두 단계에서 오류가 발생하면 같은 텔레그램 채팅에 한 줄로 알립니다.
 
+### 메뉴 오류 알림 수동 테스트
+
+다음 명령은 카카오 조회 또는 사진 전송 실패를 강제로 만들고, 로그를 기록하며 알림 문구를 터미널에 보여줍니다. 실제 메뉴 사진은 보내지 않습니다.
+기본 실행의 오류 알림 전송 성공 로그는 모의 전송 결과입니다.
+
+```bash
+/usr/bin/python3 cafeteria/manual_error_test.py profile
+/usr/bin/python3 cafeteria/manual_error_test.py photo
+tail -n 20 log/kakao_menu.log
+```
+
+각 테스트 명령에 `--send`를 붙이면 저장소 루트의 `.env`에 설정된 채팅으로 테스트 오류 알림을 실제로 보냅니다.
+
+```bash
+/usr/bin/python3 cafeteria/manual_error_test.py profile --send
+/usr/bin/python3 cafeteria/manual_error_test.py photo --send
+```
+
 서버 상태 메시지를 보냅니다.
 
 ```bash
