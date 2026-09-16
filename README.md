@@ -47,16 +47,16 @@ OPENAI_MODEL=gpt-5.2
 기본 실행의 오류 알림 전송 성공 로그는 모의 전송 결과입니다.
 
 ```bash
-/usr/bin/python3 cafeteria/manual_error_test.py profile
-/usr/bin/python3 cafeteria/manual_error_test.py photo
+/usr/bin/python3 tests/manual_error_test.py profile
+/usr/bin/python3 tests/manual_error_test.py photo
 tail -n 20 log/kakao_menu.log
 ```
 
 각 테스트 명령에 `--send`를 붙이면 저장소 루트의 `.env`에 설정된 채팅으로 테스트 오류 알림을 실제로 보냅니다.
 
 ```bash
-/usr/bin/python3 cafeteria/manual_error_test.py profile --send
-/usr/bin/python3 cafeteria/manual_error_test.py photo --send
+/usr/bin/python3 tests/manual_error_test.py profile --send
+/usr/bin/python3 tests/manual_error_test.py photo --send
 ```
 
 서버 상태 메시지를 보냅니다.
