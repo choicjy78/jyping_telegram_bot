@@ -66,19 +66,6 @@ tail -n 20 log/kakao_menu.log
 .venv/bin/python tests/manual_error_test.py photo --send
 ```
 
-서버 상태 메시지를 보냅니다.
-
-```bash
-.venv/bin/python -m manage.serverstatus
-```
-
-서버 상태 메시지를 텔레그램으로 보내지 않고 터미널에만 출력합니다.
-
-```bash
-cd telegram
-.venv/bin/python -m manage.serverstatus --dry-run
-```
-
 ## crontab 설정 예시
 
 `crontab -e`에서 아래처럼 설정할 수 있습니다. `/path/to/telegram`은 저장소 위치를 나타내는 예시 경로입니다.
@@ -86,7 +73,4 @@ cd telegram
 ```crontab
 # 평일 오전 11시 30분: 푸드스케치 메뉴 전송
 30 11 * * 1-5 cd /path/to/telegram && .venv/bin/python cafeteria/thefoodsketch.py
-
-# 평일 오전 9시: 서버 상태 전송
-0 9 * * 1-5 cd /path/to/telegram && .venv/bin/python -m manage.serverstatus
 ```
