@@ -10,14 +10,6 @@
 # 푸드스케치 봇
 FSBOT=
 FSBOT_CHATID=
-
-# 모바일팀 봇
-MDEVBOT=
-MDEV_CHATID=
-
-# AI 주말 메시지 생성
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.2
 ```
 
 `.env` 파일은 저장소에 포함되지 않습니다.
