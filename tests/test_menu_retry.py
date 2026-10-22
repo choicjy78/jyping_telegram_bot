@@ -8,9 +8,9 @@ import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
-sys.path.insert(0, str(PROJECT_DIR / "cafeteria"))
 
-import kakao_menu
+from cafeteria import config, menu_bot
+from lib import kakao_images, retry, telegram
 
 
 def profile_response():
@@ -39,9 +39,16 @@ def failed_photo_response(status_code):
 
 class SendMenuPhotoRetryTests(unittest.TestCase):
     def setUp(self):
-        self.notify_patch = patch.object(kakao_menu.common, "send_telegram_text")
-        self.sleep_patch = patch.object(kakao_menu.time, "sleep")
-        self.logger_patch = patch.object(kakao_menu, "logger")
+        initialize = patch.object(config, "initialize")
+        initialize.start()
+        self.addCleanup(initialize.stop)
+        for module in (retry, kakao_images):
+            logger_patch = patch.object(module, "logger")
+            logger_patch.start()
+            self.addCleanup(logger_patch.stop)
+        self.notify_patch = patch.object(telegram, "send_text")
+        self.sleep_patch = patch.object(retry.time, "sleep")
+        self.logger_patch = patch.object(menu_bot, "logger")
         self.notify = self.notify_patch.start()
         self.sleep = self.sleep_patch.start()
         self.logger_patch.start()
@@ -50,12 +57,13 @@ class SendMenuPhotoRetryTests(unittest.TestCase):
         self.addCleanup(self.logger_patch.stop)
 
     def send(self):
-        return kakao_menu.send_menu_photo("TEST_TOKEN", "TEST_CHAT", "TEST", "menu")
+        with patch.object(menu_bot.env, "get_required_env", side_effect=["TEST_TOKEN", "TEST_CHAT"]):
+            return menu_bot.send_menu_photo(menu_bot.IMEAL)
 
     def test_profile_timeout_recovers_without_alert(self):
-        with patch.object(kakao_menu.requests, "get", side_effect=[
+        with patch.object(kakao_images.requests, "get", side_effect=[
             requests.Timeout("test"), requests.Timeout("test"), profile_response(),
-        ]) as get, patch.object(kakao_menu.requests, "post", return_value=photo_response()) as post:
+        ]) as get, patch.object(kakao_images.requests, "post", return_value=photo_response()) as post:
             self.assertEqual(self.send(), {"message_id": 123})
         self.assertEqual(get.call_count, 3)
         post.assert_called_once()
@@ -63,7 +71,7 @@ class SendMenuPhotoRetryTests(unittest.TestCase):
         self.notify.assert_not_called()
 
     def test_profile_timeout_alerts_once_after_three_retries(self):
-        with patch.object(kakao_menu.requests, "get", side_effect=requests.Timeout("test")) as get, patch.object(kakao_menu.requests, "post") as post:
+        with patch.object(kakao_images.requests, "get", side_effect=requests.Timeout("test")) as get, patch.object(kakao_images.requests, "post") as post:
             with self.assertRaises(requests.Timeout):
                 self.send()
         self.assertEqual(get.call_count, 4)
@@ -74,7 +82,7 @@ class SendMenuPhotoRetryTests(unittest.TestCase):
 
     def test_photo_server_error_recovers_without_alert(self):
         responses = [failed_photo_response(503), failed_photo_response(503), photo_response()]
-        with patch.object(kakao_menu.requests, "get", return_value=profile_response()) as get, patch.object(kakao_menu.requests, "post", side_effect=responses) as post:
+        with patch.object(kakao_images.requests, "get", return_value=profile_response()) as get, patch.object(kakao_images.requests, "post", side_effect=responses) as post:
             self.assertEqual(self.send(), {"message_id": 123})
         get.assert_called_once()
         self.assertEqual(post.call_count, 3)
@@ -82,7 +90,7 @@ class SendMenuPhotoRetryTests(unittest.TestCase):
         self.notify.assert_not_called()
 
     def test_photo_server_error_alerts_once_after_three_retries(self):
-        with patch.object(kakao_menu.requests, "get", return_value=profile_response()) as get, patch.object(kakao_menu.requests, "post", return_value=failed_photo_response(503)) as post:
+        with patch.object(kakao_images.requests, "get", return_value=profile_response()) as get, patch.object(kakao_images.requests, "post", return_value=failed_photo_response(503)) as post:
             with self.assertRaises(requests.HTTPError):
                 self.send()
         get.assert_called_once()
@@ -97,10 +105,10 @@ class SendMenuPhotoRetryTests(unittest.TestCase):
                 self.notify.reset_mock()
                 self.sleep.reset_mock()
                 if isinstance(failure, Exception):
-                    post_patch = patch.object(kakao_menu.requests, "post", side_effect=failure)
+                    post_patch = patch.object(kakao_images.requests, "post", side_effect=failure)
                 else:
-                    post_patch = patch.object(kakao_menu.requests, "post", return_value=failure)
-                with patch.object(kakao_menu.requests, "get", return_value=profile_response()), post_patch as post:
+                    post_patch = patch.object(kakao_images.requests, "post", return_value=failure)
+                with patch.object(kakao_images.requests, "get", return_value=profile_response()), post_patch as post:
                     with self.assertRaises((requests.HTTPError, requests.ReadTimeout)):
                         self.send()
                 post.assert_called_once()

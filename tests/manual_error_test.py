@@ -12,12 +12,9 @@ import requests
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
-CAFETERIA_DIR = PROJECT_DIR / "cafeteria"
-if str(CAFETERIA_DIR) not in sys.path:
-    sys.path.insert(0, str(CAFETERIA_DIR))
 
-import common
-import kakao_menu
+from cafeteria import config, menu_bot
+from lib import env, retry, telegram
 
 
 def preview_message(bot_token, chat_id, text, timeout=10):
@@ -30,18 +27,18 @@ def main():
     parser.add_argument("--send", action="store_true", help="설정된 채팅으로 실제 오류 알림을 보냅니다.")
     args = parser.parse_args()
 
+    config.initialize()
     if args.send:
-        common.load_env_file(PROJECT_DIR / ".env")
-        bot_token = common.get_required_env(kakao_menu.BOT_TOKEN_ENV)
-        chat_id = common.get_required_env(kakao_menu.CHAT_ID_ENV)
+        bot_token = env.get_required_env(config.BOT_TOKEN_ENV)
+        chat_id = env.get_required_env(config.CHAT_ID_ENV)
     else:
         bot_token = "TEST_TOKEN"
         chat_id = "TEST_CHAT"
 
     with ExitStack() as patches:
-        patches.enter_context(patch.object(kakao_menu.time, "sleep"))
+        patches.enter_context(patch.object(retry.time, "sleep"))
         if not args.send:
-            patches.enter_context(patch.object(common, "send_telegram_text", side_effect=preview_message))
+            patches.enter_context(patch.object(telegram, "send_text", side_effect=preview_message))
 
         if args.stage == "profile":
             patches.enter_context(
@@ -75,13 +72,14 @@ def main():
             expected_error = requests.HTTPError
 
         try:
-            kakao_menu.send_menu_photo(bot_token, chat_id, "TEST", "수동 오류 테스트")
+            with patch.object(env, "get_required_env", side_effect=[bot_token, chat_id]):
+                menu_bot.send_menu_photo(menu_bot.IMEAL)
         except expected_error:
             print(f"의도한 {args.stage} 실패가 발생했습니다.")
         else:
             raise AssertionError("강제 실패 테스트에서 오류가 발생하지 않았습니다.")
 
-    print(f"로그 확인: {kakao_menu.LOG_DIR / 'kakao_menu.log'}")
+    print(f"로그 확인: {config.LOG_DIR / 'kakao_menu.log'}")
 
 
 if __name__ == "__main__":
