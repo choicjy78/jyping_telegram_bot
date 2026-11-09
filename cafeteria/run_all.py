@@ -1,4 +1,4 @@
-"""아이밀·푸드스케치·더이룸 메뉴를 순서대로 전송한다."""
+"""설정된 식당 메뉴를 순서대로 전송한다."""
 from pathlib import Path
 import sys
 

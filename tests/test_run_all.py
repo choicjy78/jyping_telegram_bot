@@ -21,11 +21,16 @@ class RunAllTests(unittest.TestCase):
         with patch.object(menu_bot.holidays, "get_korean_holiday_name", return_value=None), \
                 patch.object(menu_bot, "send_menu_photo") as send:
             self.assertEqual(menu_bot.run_all(), 0)
-        self.assertEqual(send.call_args_list, [call(menu) for menu in menu_bot.MENUS])
+        self.assertEqual(send.call_args_list, [
+            call(menu_bot.IMEAL),
+            call(menu_bot.THEFOODSKETCH),
+            call(menu_bot.STARVALLEYFOODFORYOU),
+            call(menu_bot.DAE_THEIRUM),
+        ])
 
     def test_one_failure_does_not_skip_other_menus(self):
         with patch.object(menu_bot.holidays, "get_korean_holiday_name", return_value=None), \
-                patch.object(menu_bot, "send_menu_photo", side_effect=[None, RuntimeError("실패"), None]) as send, \
+                patch.object(menu_bot, "send_menu_photo", side_effect=[None, RuntimeError("실패"), None, None]) as send, \
                 patch.object(menu_bot, "logger"):
             self.assertEqual(menu_bot.run_all(), 1)
         self.assertEqual(send.call_args_list, [call(menu) for menu in menu_bot.MENUS])
@@ -39,6 +44,7 @@ class RunAllTests(unittest.TestCase):
     def test_individual_scripts_keep_their_entry_points(self):
         for filename, menu in (("imeal.py", menu_bot.IMEAL),
                                ("thefoodsketch.py", menu_bot.THEFOODSKETCH),
+                               ("starvalleyfoodforyou.py", menu_bot.STARVALLEYFOODFORYOU),
                                ("dae_theirum.py", menu_bot.DAE_THEIRUM)):
             with self.subTest(filename=filename):
                 with patch.object(menu_bot, "run_menu") as run:

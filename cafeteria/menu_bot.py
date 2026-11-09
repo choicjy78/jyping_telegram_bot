@@ -8,7 +8,7 @@ from lib.retry import is_retryable, wait_for_retry
 from cafeteria import config
 from cafeteria.config import (
     BOT_TOKEN_ENV, CHAT_ID_ENV, MAX_RETRIES, logger,
-    IMEAL, THEFOODSKETCH, DAE_THEIRUM, MENUS,
+    IMEAL, THEFOODSKETCH, STARVALLEYFOODFORYOU, DAE_THEIRUM, MENUS,
 )
 
 

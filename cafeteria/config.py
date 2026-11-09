@@ -32,12 +32,16 @@ IMEAL = Menu("아이밀", kakao_images, "_vygYn", "오늘의 아이밀 메뉴 �
              "카카오 프로필 메뉴 조회", "프로필 메뉴 조회 실패")
 THEFOODSKETCH = Menu("담은(구 푸드스케치)", kakao_images, "_GmGxiX", "오늘의 담은(구 푸드스케치) 메뉴 입니다!!!😋",
                      "카카오 프로필 메뉴 조회", "프로필 메뉴 조회 실패")
+STARVALLEYFOODFORYOU = Menu(
+    "스타밸리푸드포유", kakao_images, "_axkixdn", "오늘의 스타밸리푸드포유 메뉴 입니다!!!😋",
+    "카카오 프로필 메뉴 조회", "프로필 메뉴 조회 실패",
+)
 DAE_THEIRUM = Menu("더이룸", instagram_images, "dae_theirum", "오늘의 더이룸 메뉴 입니다!!!😋",
                    "인스타그램 피드 조회", "인스타그램 피드 조회 실패",
                    options={"skip_pinned": True, "results_limit": 5,
                             "debug_path": LOG_DIR / "apify_last_response.json"},
                    token_env="APIFY_TOKEN")
-MENUS = (IMEAL, THEFOODSKETCH, DAE_THEIRUM)
+MENUS = (IMEAL, THEFOODSKETCH, STARVALLEYFOODFORYOU, DAE_THEIRUM)
 
 
 
