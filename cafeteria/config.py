@@ -30,7 +30,7 @@ class Menu:
 
 IMEAL = Menu("아이밀", kakao_images, "_vygYn", "오늘의 아이밀 메뉴 입니다!!!😋",
              "카카오 프로필 메뉴 조회", "프로필 메뉴 조회 실패")
-THEFOODSKETCH = Menu("푸드스케치", kakao_images, "_nFfwj", "오늘의 푸드스케치 메뉴 입니다!!!😋",
+THEFOODSKETCH = Menu("담은(구 푸드스케치)", kakao_images, "_GmGxiX", "오늘의 담은(구 푸드스케치) 메뉴 입니다!!!😋",
                      "카카오 프로필 메뉴 조회", "프로필 메뉴 조회 실패")
 DAE_THEIRUM = Menu("더이룸", instagram_images, "dae_theirum", "오늘의 더이룸 메뉴 입니다!!!😋",
                    "인스타그램 피드 조회", "인스타그램 피드 조회 실패",
