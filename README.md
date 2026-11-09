@@ -27,7 +27,7 @@ python3 -m venv .venv
 
 ## 봇 실행 방법
 
-세 식당(아이밀 → 푸드스케치 → 더이룸) 메뉴를 한 번에 보냅니다.
+네 식당(아이밀 → 푸드스케치 → 스타밸리푸드포유 → 더이룸) 메뉴를 한 번에 보냅니다.
 한 식당이 실패해도 나머지는 계속 처리하며, 하나라도 실패하면 종료 코드 1을 반환합니다.
 한국 공휴일에는 전체 실행을 건너뜁니다.
 
@@ -47,6 +47,12 @@ python3 -m venv .venv
 
 ```bash
 .venv/bin/python cafeteria/imeal.py
+```
+
+스타밸리푸드포유 메뉴 이미지를 보냅니다.
+
+```bash
+.venv/bin/python cafeteria/starvalleyfoodforyou.py
 ```
 
 더이룸(`dae_theirum`) 메뉴 이미지는 [Apify Instagram Post Scraper](https://apify.com/apify/instagram-post-scraper)로 조회합니다.
@@ -70,7 +76,7 @@ python3 -m venv .venv
 
 | 파일 | 역할 |
 | --- | --- |
-| `cafeteria/run_all.py` | 세 식당 통합 실행 진입점 |
+| `cafeteria/run_all.py` | 전체 식당 통합 실행 진입점 |
 | `cafeteria/config.py` | 식당 설정, 환경변수명·로그 경로, 명시적 초기화 |
 | `cafeteria/menu_bot.py` | 조회·전송 연결, 메뉴 오류 알림·재시도·공휴일 처리 |
 | `lib/kakao_images.py` | 카카오 채널 이미지 조회 |
@@ -78,7 +84,7 @@ python3 -m venv .venv
 | `lib/telegram.py` | 텍스트·사진·투표 전송 API |
 | `lib/env.py`, `lib/holidays.py` | 환경 파일·환경변수, 한국 공휴일 조회 |
 | `lib/retry.py`, `lib/logging_utils.py` | 재시도 판단·대기, 파일 로그 설정 도구 |
-| `cafeteria/imeal.py`, `thefoodsketch.py`, `dae_theirum.py` | 식당별 개별 실행 진입점 |
+| `cafeteria/imeal.py`, `thefoodsketch.py`, `starvalleyfoodforyou.py`, `dae_theirum.py` | 식당별 개별 실행 진입점 |
 
 식당을 추가하거나 채널·계정·문구를 바꾸려면 `config.py`의 식당 설정을 수정합니다.
 기존 `common.py`와 `runtime.py`의 기능은 위 모듈들로 분리했습니다.
@@ -122,7 +128,7 @@ tail -n 20 log/kakao_menu.log
 `crontab -e`에서 `cafeteria/run_all.py`만 실행하도록 등록합니다. `/path/to/telegram`은 실제 저장소 경로로 바꿉니다.
 
 ```crontab
-# 평일 오전 11시 30분: 세 식당 메뉴 전송
+# 평일 오전 11시 30분: 전체 식당 메뉴 전송
 30 11 * * 1-5 cd /path/to/telegram && .venv/bin/python cafeteria/run_all.py
 ```
 
