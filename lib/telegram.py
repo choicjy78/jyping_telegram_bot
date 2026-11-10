@@ -31,6 +31,8 @@ def send_poll(
     allows_revoting=True,
     allows_multiple_answers=False,
     timeout=10,
+    *,
+    open_period=None,
 ):
     payload = {
         "chat_id": chat_id,
@@ -41,6 +43,8 @@ def send_poll(
         "allows_revoting": allows_revoting,
         "allows_multiple_answers": allows_multiple_answers,
     }
+    if open_period is not None:
+        payload["open_period"] = open_period
     response = requests.post(
         api_url(bot_token, "sendPoll"),
         json=payload,

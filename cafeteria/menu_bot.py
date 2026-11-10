@@ -119,7 +119,7 @@ def run_menu(menu):
 
 
 def run_all():
-    """한 식당이 실패해도 나머지를 전송하고, 하나라도 실패하면 종료 코드 1을 반환한다."""
+    """모든 식당 메뉴 전송에 성공하면 점심 투표를 연다."""
     config.initialize()
     if holidays.get_korean_holiday_name(datetime.date.today()):
         return 0
@@ -130,4 +130,19 @@ def run_all():
         except Exception:
             logger.exception("식당 메뉴 처리 실패: name=%s", menu.name)
             failed = True
-    return 1 if failed else 0
+    if failed:
+        return 1
+
+    bot_token = env.get_required_env(BOT_TOKEN_ENV)
+    chat_id = env.get_required_env(CHAT_ID_ENV)
+    options = [menu.name for menu in MENUS] + [config.POLL_EXTRA_OPTION]
+    try:
+        telegram.send_poll(
+            bot_token, chat_id, "오늘 점심은 어디서 먹을까요?", options,
+            is_anonymous=True, open_period=config.POLL_DURATION_SECONDS,
+        )
+    except Exception as exc:
+        logger.error("텔레그램 점심 투표 전송 실패: error_type=%s", type(exc).__name__)
+        _notify_error(bot_token, chat_id, "lunch_poll", "점심 투표 전송 실패", exc, timeout=10)
+        return 1
+    return 0

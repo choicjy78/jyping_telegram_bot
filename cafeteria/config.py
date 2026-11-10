@@ -42,7 +42,8 @@ DAE_THEIRUM = Menu("더이룸", instagram_images, "dae_theirum", "오늘의 더�
                             "debug_path": LOG_DIR / "apify_last_response.json"},
                    token_env="APIFY_TOKEN")
 MENUS = (IMEAL, THEFOODSKETCH, STARVALLEYFOODFORYOU, DAE_THEIRUM)
-
+POLL_EXTRA_OPTION = "기타(외식 등)"
+POLL_DURATION_SECONDS = 20 * 60
 
 
 def initialize():

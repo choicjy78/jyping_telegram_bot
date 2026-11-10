@@ -61,6 +61,14 @@ with patch("pathlib.Path.read_text", side_effect=AssertionError("file read on im
         self.assertTrue(post.call_args.args[0].endswith("/sendPoll"))
         self.assertEqual(post.call_args.kwargs["json"]["options"],
                          [{"text": "A"}, {"text": "B"}])
+        self.assertNotIn("open_period", post.call_args.kwargs["json"])
+
+    def test_poll_api_passes_open_period_in_seconds(self):
+        response = Mock()
+        response.json.return_value = {"result": {}}
+        with patch.object(telegram.requests, "post", return_value=response) as post:
+            telegram.send_poll("TEST", "CHAT", "선택", ["A", "B"], open_period=1800)
+        self.assertEqual(post.call_args.kwargs["json"]["open_period"], 1800)
 
     def test_instagram_pin_policy_is_optional(self):
         posts = [{"displayUrl": "https://example.invalid/pinned.jpg", "isPinned": True},
